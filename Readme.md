@@ -25,7 +25,7 @@ Perfect for:
 
 ```bash
 # Using Poetry
-poetry install
+poetry install --extras macos
 
 # Or using pip
 pip install .
@@ -69,3 +69,24 @@ poetry run selfspy --data-dir=/path/to/dir
 ## License
 
 GNU General Public License v3 (GPLv3)
+
+## Platform Support
+
+Basic functionality (keyboard and mouse tracking) works on all platforms.
+
+Extended features:
+- macOS: Full window tracking and accessibility features (requires optional dependencies)
+- Other platforms: Basic activity tracking
+
+To enable full macOS support:
+```bash
+poetry install --extras macos
+```
+
+This approach provides:
+1. A fallback implementation that works everywhere
+2. Optional enhanced functionality on macOS when pyobjc is available
+3. Clear separation between core and platform-specific features
+4. Better error handling and graceful degradation
+
+The core functionality (keyboard/mouse tracking) will work on all platforms, while advanced features like window tracking will work best on macOS when the optional dependencies are installed.
