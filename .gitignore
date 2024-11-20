@@ -18,3 +18,8 @@ src/__pycache__/__init__.cpython-313.pyc
 **/src/__pycache__
 **/__pycache__
 *.pyc
+src/__pycache__/activity_monitor.cpython-313.pyc
+src/__pycache__/activity_store.cpython-313.pyc
+src/__pycache__/cli.cpython-313.pyc
+src/__pycache__/config.cpython-313.pyc
+src/platform/__pycache__/darwin.cpython-313.pyc

@@ -2,6 +2,7 @@
 """
 Modern CLI interface for Selfspy using Typer
 """
+import os
 import asyncio
 import signal
 from pathlib import Path
@@ -10,8 +11,9 @@ from typing import Optional
 import typer
 from rich.console import Console
 from rich.traceback import install
+from rich.table import Table
 
-from .activity_monitor import ActivityMonitor
+from .activity_monitor import ActivityMonitor, verify_permissions
 from .activity_store import ActivityStore
 from .config import Settings
 from .password_dialog import get_password
@@ -47,6 +49,8 @@ def start(
         store = ActivityStore(settings, password)
         monitor = ActivityMonitor(settings, store, debug)
         
+        console.print("[green]Starting Selfspy monitor...[/green]")
+        
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
@@ -58,17 +62,27 @@ def start(
         for sig in (signal.SIGTERM, signal.SIGINT):
             signal.signal(sig, signal_handler)
         
-        console.print("[green]Starting Selfspy monitor...[/green]")
-        loop.run_until_complete(monitor.start())
-        
+        try:
+            loop.run_until_complete(monitor.start())
+        except PermissionError as e:
+            console.print("\n[red]⚠️  Permission Error[/red]")
+            console.print(str(e))
+            console.print("\nTo fix this, run: [cyan]selfspy check-permissions[/cyan]")
+            return 1
+        except Exception as e:
+            console.print(f"\n[red]Error: {str(e)}[/red]")
+            return 1
+        finally:
+            if loop.is_running():
+                loop.stop()
+            loop.close()
+            
     except KeyboardInterrupt:
         console.print("\n[yellow]Shutting down gracefully...[/yellow]")
+        return 0
     except Exception as e:
-        console.print(f"[red]Error: {str(e)}[/red]")
-        raise typer.Exit(1)
-    finally:
-        if 'loop' in locals():
-            loop.close()
+        console.print(f"\n[red]Error: {str(e)}[/red]")
+        return 1
 
 @app.command()
 def stats(
@@ -119,58 +133,56 @@ def stats(
 
 
 @app.command()
-def check_permissions():
+def check_permissions() -> None:
     """Check required macOS permissions."""
     try:
-        # Import required frameworks
-        import objc
-        from ApplicationServices import AXIsProcessTrusted
+        has_permission, msg = verify_permissions()
         
-        # Direct check for accessibility permissions
-        has_accessibility = AXIsProcessTrusted()
+        # Create status table
+        status = Table(title="System Permissions Status")
+        status.add_column("Permission", style="cyan")
+        status.add_column("Status", justify="center")
+        status.add_column("Details", style="dim")
         
-        # Check screen recording permissions only if explicitly enabled
-        settings = Settings()
-        has_screen = True  # Default to True if screen recording is not enabled
-        if settings.enable_screen_recording:
-            has_screen = check_screen_recording_permission()
+        # Add accessibility status
+        terminal = os.environ.get('TERM_PROGRAM', 'Unknown Terminal')
+        status.add_row(
+            "Accessibility",
+            "✓" if has_permission else "✗",
+            f"Terminal: {terminal} ({msg})"
+        )
         
-        if has_accessibility and has_screen:
-            console.print("[green]All required permissions granted![/green]")
+        # Add database access status
+        data_dir = Path.home() / ".selfspy"
+        has_data_access = os.access(data_dir, os.W_OK)
+        status.add_row(
+            "Data Directory",
+            "✓" if has_data_access else "✗",
+            str(data_dir)
+        )
+        
+        # Overall status message
+        if has_permission and has_data_access:
+            console.print("[green]✓ All required permissions granted![/green]\n")
         else:
-            # Prepare specific permission messages
-            missing_permissions = []
-            if not has_accessibility:
-                missing_permissions.append("Accessibility")
-            if settings.enable_screen_recording and not has_screen:
-                missing_permissions.append("Screen Recording")
-            
-            console.print(
-                f"[yellow]Missing permissions: {', '.join(missing_permissions)}[/yellow]\n"
-                "Please check System Settings > Privacy & Security > Privacy"
-            )
-            
-            # Try to open System Settings
-            try:
-                import Foundation
-                url_str = Foundation.NSString.stringWithString_("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
-                url = Foundation.NSURL.URLWithString_(url_str)
-                Foundation.NSWorkspace.sharedWorkspace().openURL_(url)
-            except Exception as e:
-                console.print("[red]Could not open System Settings automatically[/red]")
-            
+            console.print("[red]✗ Some permissions are missing![/red]\n")
+        
         # Print detailed status
-        console.print("\nPermission Status:")
-        console.print(f"Accessibility: {'✓' if has_accessibility else '✗'}")
-        if settings.enable_screen_recording:
-            console.print(f"Screen Recording: {'✓' if has_screen else '✗'}")
+        console.print(status)
+        
+        if not has_permission:
+            console.print("\n[yellow]To fix accessibility permissions:[/yellow]")
+            console.print(f"1. Open System Settings > Privacy & Security > Privacy > Accessibility")
+            console.print(f"2. Add and enable {terminal}")
+            console.print("3. Run [cyan]selfspy check-permissions[/cyan] to verify")
+            return 1
             
-    except ImportError as e:
-        console.print(f"[red]Error importing macOS frameworks. Make sure you have PyObjC installed: {e}[/red]")
-        raise typer.Exit(1)
+        return 0
+            
     except Exception as e:
-        console.print(f"[red]Error checking permissions: {e}[/red]")
-        raise typer.Exit(1)
+        console.print(f"[red]Error: {str(e)}[/red]")
+        return 1
+
 def check_screen_recording_permission() -> bool:
     """Check screen recording permission status"""
     try:

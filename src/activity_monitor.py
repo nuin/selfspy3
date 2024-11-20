@@ -5,20 +5,24 @@ import asyncio
 import platform
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 
 import structlog
 from pynput import mouse
 import Quartz
+from rich.live import Live
+from rich.table import Table
+from rich.layout import Layout
+from rich.console import Console
+from rich.panel import Panel
 
 from .activity_store import ActivityStore
 from .config import Settings
 from .platform.input_tracker import InputTracker
-from rich.live import Live
-from rich.table import Table
-from rich.layout import Layout
+from .platform.permissions import verify_permissions
 
 logger = structlog.get_logger()
+console = Console()
 
 class ActivityMonitor:
     """Activity monitor implementation"""
@@ -51,42 +55,6 @@ class ActivityMonitor:
             wrapper_class=structlog.make_filtering_bound_logger(log_level)
         )
 
-        # Initialize platform-specific trackers
-        try:
-            if platform.system() == 'Darwin':
-                from .platform.darwin_input import MacOSInputTracker
-                from .platform.darwin import MacOSWindowTracker
-                self.window_tracker = MacOSWindowTracker()
-                self.input_tracker = MacOSInputTracker(
-                    on_key_press=self._on_key_press,
-                    on_key_release=self._on_key_release,
-                    on_mouse_move=self._on_mouse_move,
-                    on_mouse_click=self._on_mouse_click,
-                    on_scroll=self._on_scroll
-                )
-            else:
-                from .platform.fallback import FallbackWindowTracker
-                self.window_tracker = FallbackWindowTracker()
-                self.input_tracker = InputTracker(
-                    on_key_press=self._on_key_press,
-                    on_key_release=self._on_key_release,
-                    on_mouse_move=self._on_mouse_move,
-                    on_mouse_click=self._on_mouse_click,
-                    on_scroll=self._on_scroll
-                )
-                logger.warning(f"Platform {platform.system()} has limited tracking support")
-        except Exception as e:
-            logger.warning(f"Using fallback trackers: {str(e)}")
-            from .platform.fallback import FallbackWindowTracker
-            self.window_tracker = FallbackWindowTracker()
-            self.input_tracker = InputTracker(
-                on_key_press=self._on_key_press,
-                on_key_release=self._on_key_release,
-                on_mouse_move=self._on_mouse_move,
-                on_mouse_click=self._on_mouse_click,
-                on_scroll=self._on_scroll
-            )
-
     def _generate_display(self) -> Layout:
         """Generate live display layout"""
         layout = Layout()
@@ -113,36 +81,76 @@ class ActivityMonitor:
         """Start monitoring asynchronously"""
         logger.info("Starting activity monitor...")
         
+        # Check accessibility permissions with retry
         if platform.system() == 'Darwin':
-            if not Quartz.AXIsProcessTrusted():
-                logger.error("Accessibility permissions required")
+            has_permission, msg = verify_permissions()
+            if not has_permission:
                 raise PermissionError(
-                    "Accessibility permissions required. Run 'selfspy check-permissions' for help."
+                    "\n[red]⚠️  Accessibility Permission Required[/red]\n\n"
+                    "Selfspy needs accessibility permissions to monitor keyboard and mouse input.\n"
+                    f"[yellow]Status: {msg}[/yellow]\n\n"
+                    "To fix:\n"
+                    "1. Open System Settings > Privacy & Security > Privacy > Accessibility\n"
+                    "2. Add and enable your terminal application\n"
+                    "3. Run [cyan]selfspy check-permissions[/cyan] to verify"
                 )
         
         self.running = True
         
-        # Start input tracking
-        if not self.input_tracker.start():
-            raise RuntimeError("Failed to start input tracking")
-            
-        with Live(self._generate_display(), refresh_per_second=1) as live:
-            self.live_display = live
-            while self.running:
-                try:
-                    await self._check_active_window()
-                    await self._flush_buffer()
-                    if self.live_display:
-                        self.live_display.update(self._generate_display())
-                    await asyncio.sleep(self.settings.active_window_check_interval)
-                except Exception as e:
-                    logger.error("Monitor error", error=str(e))
+        try:
+            # Initialize platform-specific trackers
+            if platform.system() == 'Darwin':
+                from .platform.darwin_input import MacOSInputTracker
+                from .platform.darwin import MacOSWindowTracker
+                self.window_tracker = MacOSWindowTracker()
+                self.input_tracker = MacOSInputTracker(
+                    on_key_press=self._on_key_press,
+                    on_key_release=self._on_key_release,
+                    on_mouse_move=self._on_mouse_move,
+                    on_mouse_click=self._on_mouse_click,
+                    on_scroll=self._on_scroll
+                )
+            else:
+                from .platform.fallback import FallbackWindowTracker
+                self.window_tracker = FallbackWindowTracker()
+                self.input_tracker = InputTracker(
+                    on_key_press=self._on_key_press,
+                    on_key_release=self._on_key_release,
+                    on_mouse_move=self._on_mouse_move,
+                    on_mouse_click=self._on_mouse_click,
+                    on_scroll=self._on_scroll
+                )
+                logger.warning(f"Platform {platform.system()} has limited tracking support")
+
+            # Start input tracking
+            if not getattr(self.input_tracker, 'start', lambda: True)():
+                raise RuntimeError("Failed to start input tracking")
+                
+            with Live(self._generate_display(), refresh_per_second=1) as live:
+                self.live_display = live
+                while self.running:
+                    try:
+                        await self._check_active_window()
+                        await self._flush_buffer()
+                        if self.live_display:
+                            self.live_display.update(self._generate_display())
+                        await asyncio.sleep(self.settings.active_window_check_interval)
+                    except Exception as e:
+                        logger.error("Monitor loop error", error=str(e))
+                        if not self.settings.monitor_suppress_errors:
+                            raise
+
+        except Exception as e:
+            logger.error("Monitor error", error=str(e))
+            self.running = False
+            raise
 
     async def stop(self):
         """Stop monitoring"""
         logger.info("Stopping activity monitor...")
         self.running = False
-        self.input_tracker.stop()
+        if hasattr(self.input_tracker, 'stop'):
+            self.input_tracker.stop()
         await self._flush_buffer()
 
     def _on_key_press(self, key):
@@ -208,8 +216,8 @@ class ActivityMonitor:
                 self.stats['windows'] += 1
                 self.stats['last_window'] = window_info
                 await self.store.store_window(
-                    window_info['title'],
-                    window_info['process']
+                    window_info.get('title', 'unknown'),
+                    window_info.get('process', 'unknown')
                 )
         except Exception as e:
             logger.error("Window check error", error=str(e))
