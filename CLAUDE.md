@@ -15,18 +15,40 @@ The project uses modern Python (3.10+) with async/await patterns and SQLAlchemy 
 ## Development Commands
 
 ### Setup and Installation
+
+**Option 1: Using uv (recommended for development)**
 ```bash
-# Install dependencies (use uv)
+# Install dependencies
 uv sync --group dev
 
 # Install with macOS extras for full functionality
 uv sync --group dev --extra macos
 
-# Alternative pip installation
+# Alternative uv installation
 uv pip install .
 ```
 
+**Option 2: Using pip (standard Python)**
+```bash
+# Quick automatic installation
+python3 install.py
+
+# Manual installation - basic
+pip3 install -r requirements.txt
+pip3 install -e .
+
+# Manual installation - macOS with full functionality
+pip3 install -r requirements-macos.txt
+pip3 install -e .
+
+# Development setup
+pip3 install -r requirements-dev.txt
+pip3 install -e .
+```
+
 ### Running the Application
+
+**With uv (from development environment):**
 ```bash
 # Start monitoring (will guide through permission setup on macOS)
 uv run selfspy start
@@ -37,26 +59,40 @@ uv run selfspy start --data-dir /path/to/data
 # Start monitoring without text logging
 uv run selfspy start --no-text
 
-# Skip permission checks (for testing, may fail)
-uv run selfspy start --force
-
-# View statistics (basic)
-uv run selfstats
-
 # View enhanced statistics with rich visualizations 🎨
 uv run selfviz enhanced
 
 # View activity timeline
 uv run selfviz timeline --days 1
 
-# Live activity dashboard
-uv run selfviz live
+# Terminal command analytics 🔧
+uv run selfterminal commands --days 7
+uv run selfspy terminal sessions --days 30
 
 # Check macOS permissions manually
 uv run selfspy check-permissions
 ```
 
+**Direct commands (after installation):**
+```bash
+# Start monitoring
+selfspy start
+
+# View statistics
+selfstats
+selfviz enhanced
+
+# Terminal analytics
+selfterminal commands --days 7
+selfspy terminal projects --days 30
+
+# Check permissions (macOS)
+selfspy check-permissions
+```
+
 ### Development and Testing
+
+**With uv (recommended for development):**
 ```bash
 # Run tests
 uv run pytest
@@ -77,6 +113,21 @@ uv run mypy src/
 uv run pre-commit run --all-files
 ```
 
+**Direct commands (after pip installation):**
+```bash
+# Run tests
+pytest
+
+# Linting and formatting
+black src/ tests/
+isort src/ tests/
+ruff check src/ tests/
+mypy src/
+
+# Pre-commit hooks
+pre-commit run --all-files
+```
+
 ## Architecture Overview
 
 ### Core Components
@@ -89,8 +140,16 @@ uv run pre-commit run --all-files
 **Activity Monitor (`src/activity_monitor.py`)**
 - Central orchestrator using async patterns
 - Manages platform-specific trackers (keyboard, mouse, window)
+- Includes terminal command tracking (background task)
 - Maintains live dashboard during monitoring
 - Buffers keystrokes before storage to reduce I/O
+
+**Terminal Tracking (`src/terminal_tracker.py` and `src/terminal_stats.py`)**
+- Monitors shell command history files (bash, zsh, fish)
+- Tracks commands by working directory and project context
+- Categorizes commands by type (git, npm, python, etc.)
+- Detects project types and git branches automatically
+- Provides rich analytics and visualizations for development workflows
 
 **Data Layer**
 - `src/models.py`: SQLAlchemy 2.0 models with modern mapped_column syntax
@@ -118,6 +177,8 @@ Uses SQLAlchemy 2.0 with declarative base and relationships:
 - `Window`: Window metadata including geometry and screen info
 - `Keys`: Encrypted keystroke data with counts
 - `Click`: Mouse events with coordinates and movement tracking
+- `TerminalSession`: Terminal session metadata (shell type, working directory)
+- `TerminalCommand`: Individual commands with context (git branch, project type, exit codes)
 
 All tables include timestamp mixins and proper indexing for performance.
 
