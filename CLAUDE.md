@@ -40,8 +40,17 @@ uv run selfspy start --no-text
 # Skip permission checks (for testing, may fail)
 uv run selfspy start --force
 
-# View statistics
+# View statistics (basic)
 uv run selfstats
+
+# View enhanced statistics with rich visualizations 🎨
+uv run selfviz enhanced
+
+# View activity timeline
+uv run selfviz timeline --days 1
+
+# Live activity dashboard
+uv run selfviz live
 
 # Check macOS permissions manually
 uv run selfspy check-permissions

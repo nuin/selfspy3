@@ -1,0 +1,69 @@
+: 1732073471:0;code .
+: 1732073495:0;poetry shell
+: 1732073497:0;emulate bash -c '. /Users/nuin/Library/Caches/pypoetry/virtualenvs/selfspy-BrbtP5DI-py3.13/bin/activate'
+: 1732073505:0;poetry install
+: 1732073552:0;poetry run selfspy
+: 1732073585:0;ssh 100.65.121.84
+: 1732073733:0;git pull --all
+: 1732073745:0;git stash
+: 1732073750:0;git pull origin master
+: 1732073757:0;rm src/__pycache__/__init__.cpython-313.pyc
+: 1732073758:0;git pull origin master
+: 1732073765:0;poetry install
+: 1732073870:0;repomix
+: 1732073884:0;cat repomix-output.txt | pbcopy
+: 1732075303:0;poetry locl
+: 1732075306:0;poetry lock
+: 1732075382:0;poetry install 
+: 1732075404:0;poetry run selfspy start
+: 1732075489:0;poetry run selfspy start
+: 1732075503:0;poetry run selfspy start
+: 1732075562:0;poetry run selfspy start
+: 1732075583:0;poetry run selfspy start
+: 1732075614:0;rm repomix-output.txt
+: 1732075841:0;poetry install
+: 1732075847:0;poetry lock
+: 1732075849:0;poetry install
+: 1732075858:0;poetry run selfspy start
+: 1732076091:0;poetry lock
+: 1732076103:0;poetry install
+: 1732076106:0;poetry run selfspy start
+: 1732076151:0;poetry run selfspy start
+: 1732076314:0;poetry run selfspy start
+: 1732077826:0;ls
+: 1732077836:0;ls -alh
+: 1732077843:0;cd src
+: 1732080499:0;lz
+: 1732080516:0;poetry run selfspy stats
+: 1732080850:0;poetry run selfspy stats --days 7
+: 1732080863:0;poetry run selfspy stats --days 7
+: 1732080871:0;poetry run selfspy stats 
+: 1732080998:0;poetry run selfspy stats summary --days 7
+: 1732081062:0;poetry run selfspy stats summary --days 7
+: 1732081166:0;poetry run selfspy stats summary --days 7
+: 1732081223:0;poetry run selfspy stats summary --days 7
+: 1732081531:0;poetry run selfspy stats summary --days 7
+: 1732081573:0;poetry run selfspy stats summary --days 7
+: 1732081637:0;poetry run selfspy stats summary --days 7
+: 1732082005:0;poetry run selfspy start
+: 1732082118:0;poetry run selfspy start
+: 1732082139:0;poetry run selfspy stats summary --days 7
+: 1732082183:0;repomix
+: 1732082187:0;cat repomix-output.txt | pbcopy
+: 1732082209:0;poetry run selfspy stats summary --days 7
+: 1732082771:0;poetry run selfspy start
+: 1732082824:0;poetry run selfspy start
+: 1732082845:0;rm repomix-output.txt
+: 1732082887:0;rm repomix-output.txt
+: 1732082889:0;poetry run selfspy start
+: 1732083215:0;poetry run selfspy start
+: 1732083267:0;poetry run selfspy start
+: 1732083390:0;poetry run selfspy start
+: 1732083457:0;poetry run selfspy start
+: 1732083531:0;poetry run selfspy check-permissions
+: 1732083535:0;poetry run selfspy start
+: 1732083548:0;poetry run selfspy start
+: 1732083638:0;poetry run selfspy start
+: 1732083690:0;poetry run selfspy start
+: 1732249964:0;scp -r 100.65.121.84:.config/starship.toml ~/.config/starship.toml
+: 1732433819:0;cd ..
