@@ -1,0 +1,22 @@
+[package]
+name = "selfspy-monitor"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "selfspy"
+path = "src/main.rs"
+
+[dependencies]
+selfspy-core = { path = "../selfspy-core" }
+tokio = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+directories = { workspace = true }
+chrono = { workspace = true }

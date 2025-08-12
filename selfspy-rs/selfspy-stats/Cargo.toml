@@ -1,0 +1,28 @@
+[package]
+name = "selfspy-stats"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "selfstats"
+path = "src/main.rs"
+
+[[bin]]
+name = "selfviz"
+path = "src/viz.rs"
+
+[dependencies]
+selfspy-core = { path = "../selfspy-core" }
+tokio = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+comfy-table = "7.1"
+indicatif = "0.17"
