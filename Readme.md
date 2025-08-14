@@ -1,226 +1,175 @@
-# Selfspy 🔍
+# Selfspy - Comprehensive Activity Monitoring Suite
 
-A modern Python tool for monitoring and analyzing your computer activity with beautiful visualizations and terminal command analytics.
+> **Modern, cross-platform computer activity monitoring with multiple implementation options**
 
-## Features ✨
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python Support](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
+[![Rust Support](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://rust-lang.org)
+[![Elixir Support](https://img.shields.io/badge/Elixir-1.15+-purple.svg)](https://elixir-lang.org)
 
-Selfspy continuously monitors and analyzes:
-- **Keystrokes** (encrypted for security)
-- **Mouse movements and clicks**
-- **Active window titles and processes**
-- **Terminal command execution** with project context
-- **Activity periods and patterns**
+Selfspy is a comprehensive activity monitoring suite that tracks keyboard input, mouse activity, window changes, and terminal commands across multiple platforms. Choose from Python, Rust, or Phoenix implementations based on your needs.
 
-### What's New 🆕
-- 🎨 **Rich visualizations** with charts and graphs
-- 🔧 **Terminal command analytics** - track your development workflow  
-- 📊 **Enhanced statistics** with productivity insights
-- 🖥️ **Live dashboard** with real-time monitoring
-- 🍎 **Native macOS integration** with proper permissions handling
-- 🪟 **Desktop widgets** - beautiful always-on-top activity widgets
+## 🚀 Quick Start
 
-## Quick Start 🚀
+### Choose Your Implementation
 
-### Installation
+| Implementation | Best For | Key Features |
+|----------------|----------|-------------|
+| **[Python](python/)** | General use, scripting, research | Original implementation, mature ecosystem |
+| **[Rust](rust/)** | Performance, system integration | Native GUI, low resource usage |
+| **[Elixir/Phoenix](elixir/)** | Web dashboard, real-time analytics | LiveView interface, multi-user |
+| **[Objective-C/macOS](objective-c/)** | macOS desktop integration | Native widgets, system notifications |
+
+### One-Line Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/selfspy3.git
+# Python (recommended for most users)
+curl -sSL https://install.selfspy.dev/python | bash
+
+# Or clone and choose your implementation
+git clone https://github.com/selfspy/selfspy3.git
 cd selfspy3
 
-# Quick automatic installation (detects uv/pip automatically)
-python3 install.py
-```
-
-**Alternative installation methods:**
-
-**Using uv (recommended for development):**
-```bash
-# Basic installation
-uv sync
-
-# macOS with full functionality
-uv sync --extra macos
-
-# Development setup
-uv sync --group dev --extra macos
-```
-
-**Using pip:**
-```bash
-# Manual installation - basic
-pip3 install -r requirements.txt
-pip3 install -e .
-
-# Manual installation - macOS with full functionality
-pip3 install -r requirements-macos.txt
-pip3 install -e .
-
-# Development setup
-python3 install.py --dev
+# Quick Python setup
+cd python && python3 install.py
 ```
 
 ### Basic Usage
 
-Start monitoring your activity:
 ```bash
-selfspy start
-```
+# Start monitoring (from Python directory)
+cd python && selfspy start
 
-View beautiful statistics:
-```bash
-# Enhanced visualizations
+# View enhanced statistics
 selfviz enhanced
 
-# Activity timeline
-selfviz timeline --days 7
-
-# Live dashboard
-selfviz live
-```
-
-Analyze your terminal workflow:
-```bash
-# Command frequency analysis
+# Terminal analytics
 selfterminal commands --days 7
 
-# Project-based analysis
-selfterminal projects
-
-# Development workflow patterns
-selfterminal workflow
-```
-
-Check permissions (macOS):
-```bash
+# Check permissions (macOS)
 selfspy check-permissions
 ```
 
-Launch desktop widgets (macOS):
-```bash
-cd desktop-app
-python3 launch_widgets.py developer  # Activity + Terminal + Apps
-python3 launch_widgets.py minimal     # Just activity summary
+## 📁 Project Structure
+
+```
+selfspy/
+├── python/                       # 🐍 Python Implementation
+│   ├── src/selfspy/              # Main Python package
+│   ├── tests/                    # Python tests
+│   ├── desktop-app/              # macOS desktop widgets
+│   └── README.md                 # Python-specific guide
+│
+├── rust/                         # 🦀 Rust Implementation
+│   ├── selfspy-core/             # Core library
+│   ├── selfspy-gui/              # GUI application
+│   ├── selfspy-cli/              # Command line tools
+│   └── README.md                 # Rust-specific guide
+│
+├── elixir/                       # 🔥 Elixir/Phoenix Implementation
+│   ├── lib/                      # Elixir source code
+│   ├── assets/                   # Frontend assets
+│   ├── priv/                     # Migrations and static files
+│   └── README.md                 # Elixir-specific guide
+│
+├── objective-c/                  # 🍎 Objective-C/macOS Implementation
+│   ├── SelfspyWidgets.xcodeproj/ # Xcode project
+│   ├── SelfspyWidgets/           # Source code
+│   ├── Scripts/                  # Build scripts
+│   └── README.md                 # Objective-C guide
+│
+├── docs/                         # 📚 Documentation
+│   ├── installation/             # Installation guides
+│   ├── user-guides/              # User documentation
+│   └── development/              # Developer guides
+│
+├── shared/                       # 🔧 Shared Resources
+│   ├── scripts/                  # Development scripts
+│   ├── schemas/                  # Database schemas
+│   └── configs/                  # Configuration templates
+│
+└── tools/                        # 🛠️ Development Tools
+    ├── docker/                   # Container configurations
+    └── ci/                       # CI/CD configurations
 ```
 
-## Requirements 📋
+## 🎯 Features
 
-- **Python 3.10+**
-- **macOS** (full support), Linux (basic support), Windows (limited)
-- **Accessibility permissions** (macOS only)
+### Core Monitoring
+- **Keystroke Tracking** - Encrypted text capture with activity analysis
+- **Mouse Activity** - Click events, movement patterns, and usage statistics
+- **Window Management** - Active application tracking and window metadata
+- **Terminal Analytics** - Command history with git integration and project detection
 
-## Installation Guide 📖
+### Security & Privacy
+- **Encryption by Default** - All sensitive data encrypted at rest
+- **Local Storage Only** - No cloud transmission, complete data ownership
+- **Configurable Exclusions** - Exclude sensitive applications and windows
+- **Permission Management** - Granular control over what gets monitored
 
-For detailed installation instructions, troubleshooting, and platform-specific setup, see [INSTALL.md](INSTALL.md).
+### Multiple Interfaces
+- **Command Line** - Full-featured CLI for all operations
+- **Web Dashboard** - Real-time Phoenix LiveView interface
+- **Native GUI** - Cross-platform Rust application with charts
+- **Desktop Widgets** - macOS notification center integration
 
-## Commands Reference 📚
+## 🚀 Development
 
-### Core Commands
-- `selfspy start` - Start activity monitoring
-- `selfspy check-permissions` - Check macOS permissions
-- `selfstats` - Basic statistics (legacy command)
-
-### Enhanced Visualizations  
-- `selfviz enhanced` - Rich statistics with charts
-- `selfviz timeline` - Activity timeline view
-- `selfviz live` - Real-time dashboard
-
-### Terminal Analytics
-- `selfterminal commands` - Command frequency analysis
-- `selfterminal sessions` - Terminal session statistics  
-- `selfterminal projects` - Project-based analysis
-- `selfterminal workflow` - Development workflow patterns
-
-### Desktop Widgets (macOS)
-- `python3 desktop-app/launch_widgets.py minimal` - Activity summary widget
-- `python3 desktop-app/launch_widgets.py developer` - Developer widget set
-- `python3 desktop-app/launch_widgets.py full` - All widget types
-- Right-click widgets for customization options
-
-## Perfect For 💼
-
-- **Developers** - Track coding patterns and terminal usage
-- **Freelancers** - Monitor time and productivity
-- **Researchers** - Analyze computer usage patterns
-- **Personal Analytics** - Understand your digital habits
-
-## Security & Privacy 🔒
-
-- All keystroke data is **encrypted** using industry-standard encryption
-- **Local storage only** - no data leaves your computer
-- Password protection for sensitive data
-- Option to disable text logging
-- Configurable exclusions for sensitive applications
-
-## Development 🛠️
+### Quick Setup
 
 ```bash
-# Set up development environment
-python3 install.py --dev
+# Setup development environment for all implementations
+./shared/scripts/setup-dev-env-new.sh
 
-# Run tests
-pytest
-
-# Code formatting
-black src/ tests/
-isort src/ tests/
-
-# Linting
-ruff check src/ tests/
-mypy src/
+# Use the development helper
+./dev python uv run selfspy start       # Python
+./dev rust cargo run --bin selfspy-gui  # Rust GUI  
+./dev elixir mix phx.server             # Phoenix web
+./dev objective-c make all              # macOS widgets
+./dev test                              # All tests
+./dev build                             # Build everything
 ```
 
-## Platform Support 🖥️
+### Development Helper
 
-**macOS** (Recommended)
-- Full window tracking and accessibility features
-- Native PyObjC integration
-- Advanced permissions handling
+The `./dev` script provides easy access to all implementations:
 
-**Linux**
-- Basic activity tracking
-- Terminal command analytics
-
-**Windows**
-- Limited support
-- Basic functionality only
-
-## Configuration ⚙️
-
-Default configuration is stored in `~/.local/share/selfspy/` (Linux/macOS) or equivalent.
-
-Customize the data directory:
 ```bash
-selfspy start --data-dir /path/to/custom/dir
+./dev [language] [command]
+
+# Examples:
+./dev python uv run selfspy start
+./dev rust cargo build --release
+./dev elixir mix phx.server
+./dev objective-c make all
+./dev test                    # Run all tests
+./dev build                   # Build all implementations
 ```
 
-## Advanced Usage 🚀
+## 📖 Documentation
 
-For detailed usage examples, advanced configuration, and API documentation, see [ADVANCED_GUIDE.md](ADVANCED_GUIDE.md).
+- **[Installation Guides](docs/installation/)** - Platform-specific setup
+- **[User Guides](docs/user-guides/)** - How to use Selfspy effectively
+- **[Development Docs](docs/development/)** - Contributing and architecture
+- **[API Reference](docs/api-reference/)** - Programming interfaces
 
-## Contributing 🤝
+## 🤝 Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Install development dependencies (`python3 install.py --dev`)
-4. Make your changes
-5. Run tests (`pytest`)
-6. Format code (`black src/ tests/`)
-7. Submit a pull request
+1. Choose the implementation you want to work on
+2. Read the language-specific README in that directory
+3. Follow the development setup instructions
+4. See [Contributing Guide](docs/development/contributing.md) for details
 
-## License 📄
+## 📄 License
 
-GNU General Public License v3 (GPLv3) - see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
-## Architecture 🏗️
+## 🔗 Links
 
-Built with modern Python practices:
-- **Async/await** for performance
-- **SQLAlchemy 2.0** for database operations
-- **Rich** for beautiful CLI interfaces
-- **Typer** for command-line framework
-- **Pydantic** for configuration management
+- **Documentation**: [docs/](docs/)
+- **Issues**: [GitHub Issues](https://github.com/selfspy/selfspy3/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/selfspy/selfspy3/discussions)
 
 ---
 
-**Ready to understand your digital habits?** `python3 install.py` and `selfspy start`! 🚀
+**Built with ❤️ by the Selfspy community**

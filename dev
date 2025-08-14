@@ -1,0 +1,58 @@
+#!/bin/bash
+# Selfspy Development Helper (New Structure)
+
+case "$1" in
+    "python")
+        cd python
+        exec "${@:2}"
+        ;;
+    "rust")
+        cd rust
+        exec "${@:2}"
+        ;;
+    "elixir"|"phoenix")
+        cd elixir
+        exec "${@:2}"
+        ;;
+    "objective-c"|"objc"|"macos")
+        cd objective-c
+        exec "${@:2}"
+        ;;
+    "test")
+        echo "Running all tests..."
+        ./shared/scripts/run-tests.sh
+        ;;
+    "build")
+        echo "Building all implementations..."
+        ./shared/scripts/build-all.sh
+        ;;
+    "docs")
+        echo "Opening documentation..."
+        open docs/README.md 2>/dev/null || echo "See docs/README.md"
+        ;;
+    *)
+        echo "Selfspy Development Helper"
+        echo "========================="
+        echo ""
+        echo "Usage: ./dev [language|command] [args...]"
+        echo ""
+        echo "Languages:"
+        echo "  python                    - Switch to Python implementation"
+        echo "  rust                      - Switch to Rust implementation"
+        echo "  elixir|phoenix           - Switch to Elixir/Phoenix implementation"
+        echo "  objective-c|objc|macos   - Switch to Objective-C implementation"
+        echo ""
+        echo "Commands:"
+        echo "  test                     - Run all tests"
+        echo "  build                    - Build all implementations"
+        echo "  docs                     - Open documentation"
+        echo ""
+        echo "Examples:"
+        echo "  ./dev python uv run selfspy start"
+        echo "  ./dev rust cargo run --bin selfspy-gui"
+        echo "  ./dev elixir mix phx.server"
+        echo "  ./dev objective-c make all"
+        echo "  ./dev test"
+        echo "  ./dev build"
+        ;;
+esac
