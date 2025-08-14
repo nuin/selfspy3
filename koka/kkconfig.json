@@ -1,0 +1,17 @@
+{
+  "name": "selfspy",
+  "version": "1.0.0",
+  "description": "Modern activity monitoring system implemented in Koka",
+  "author": "Selfspy Team",
+  "license": "MIT",
+  "main": "selfspy.kk",
+  "dependencies": {},
+  "koka": {
+    "version": "^2.4.0",
+    "compile": {
+      "target": "c",
+      "optimize": 2,
+      "stack-size": "8m"
+    }
+  }
+}

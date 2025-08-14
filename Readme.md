@@ -19,6 +19,9 @@ Selfspy is a comprehensive activity monitoring suite that tracks keyboard input,
 | **[Rust](rust/)** | Performance, system integration | Native GUI, low resource usage |
 | **[Elixir/Phoenix](elixir/)** | Web dashboard, real-time analytics | LiveView interface, multi-user |
 | **[Objective-C/macOS](objective-c/)** | macOS desktop integration | Native widgets, system notifications |
+| **[Nim](nim/)** | Compiled performance, Python-like syntax | Memory-safe, fast compilation |
+| **[Crystal](crystal/)** | Ruby-like syntax, native performance | Type-safe, excellent concurrency |
+| **[Zig](zig/)** | Maximum performance, systems programming | Memory-safe C replacement, minimal overhead |
 
 ### One-Line Install
 
@@ -78,6 +81,21 @@ selfspy/
 │   ├── Scripts/                  # Build scripts
 │   └── README.md                 # Objective-C guide
 │
+├── nim/                          # ⚡ Nim Implementation
+│   ├── src/                      # Nim source code
+│   ├── selfspy.nimble            # Package configuration
+│   └── README.md                 # Nim-specific guide
+│
+├── crystal/                      # 💎 Crystal Implementation
+│   ├── src/                      # Crystal source code
+│   ├── shard.yml                 # Shard configuration
+│   └── README.md                 # Crystal-specific guide
+│
+├── zig/                          # ⚡ Zig Implementation
+│   ├── src/                      # Zig source code
+│   ├── build.zig                 # Build configuration
+│   └── README.md                 # Zig-specific guide
+│
 ├── docs/                         # 📚 Documentation
 │   ├── installation/             # Installation guides
 │   ├── user-guides/              # User documentation
@@ -126,6 +144,9 @@ selfspy/
 ./dev rust cargo run --bin selfspy-gui  # Rust GUI  
 ./dev elixir mix phx.server             # Phoenix web
 ./dev objective-c make all              # macOS widgets
+./dev nim nimble run selfspy start      # Nim compiled
+./dev crystal shards run selfspy start  # Crystal compiled
+./dev zig zig build run -- start        # Zig maximum performance
 ./dev test                              # All tests
 ./dev build                             # Build everything
 ```
@@ -142,6 +163,9 @@ The `./dev` script provides easy access to all implementations:
 ./dev rust cargo build --release
 ./dev elixir mix phx.server
 ./dev objective-c make all
+./dev nim nimble build
+./dev crystal shards build --release
+./dev zig zig build -Doptimize=ReleaseFast
 ./dev test                    # Run all tests
 ./dev build                   # Build all implementations
 ```

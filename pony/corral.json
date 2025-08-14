@@ -1,0 +1,16 @@
+{
+  "info": {
+    "name": "selfspy",
+    "version": "1.0.0",
+    "description": "Modern activity monitoring in Pony - actor-model concurrency with reference capabilities",
+    "homepage": "https://github.com/selfspy/selfspy3",
+    "license": "MIT"
+  },
+  "deps": [
+    {
+      "type": "github",
+      "repo": "ponylang/ponyc",
+      "tag": "0.58.0"
+    }
+  ]
+}

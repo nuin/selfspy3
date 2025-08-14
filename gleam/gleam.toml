@@ -1,0 +1,24 @@
+[package]
+name = "selfspy"
+version = "1.0.0"
+description = "Modern activity monitoring in Gleam - type-safe functional programming for the BEAM VM"
+licences = ["MIT"]
+repository = { type = "github", user = "selfspy", repo = "selfspy3" }
+
+[dependencies]
+gleam_stdlib = "~> 0.32"
+gleam_erlang = "~> 0.23"
+gleam_otp = "~> 0.8"
+gleam_json = "~> 0.6"
+gleam_http = "~> 3.5"
+argv = "~> 1.0"
+simplifile = "~> 1.4"
+
+[dev-dependencies]
+gleeunit = "~> 1.0"
+
+[target.erlang.dependencies]
+esqlite = "~> 0.7"
+
+[target.javascript.dependencies]
+plinth = "~> 1.0"

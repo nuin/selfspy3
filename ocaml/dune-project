@@ -1,0 +1,30 @@
+(lang dune 3.0)
+
+(name selfspy)
+
+(package
+ (name selfspy)
+ (version 1.0.0)
+ (synopsis "Modern activity monitoring in OCaml - industrial-strength functional programming")
+ (description "OCaml implementation of Selfspy with excellent performance, strong type system with inference, and mature ecosystem for system programming.")
+ (authors "Selfspy Team")
+ (maintainers "team@selfspy.dev")
+ (license MIT)
+ (homepage "https://github.com/selfspy/selfspy3")
+ (bug-reports "https://github.com/selfspy/selfspy3/issues")
+ (depends
+  ocaml
+  dune
+  cmdliner
+  lwt
+  lwt_ppx
+  yojson
+  sqlite3
+  logs
+  fmt
+  unix-time
+  cryptokit
+  base64
+  calendar))
+
+(generate_opam_files true)

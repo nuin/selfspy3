@@ -1,0 +1,36 @@
+{
+  "name": "selfspy-rescript",
+  "version": "1.0.0",
+  "description": "Modern activity monitoring in ReScript - OCaml for JavaScript with strong typing",
+  "main": "src/Selfspy.bs.js",
+  "scripts": {
+    "build": "rescript",
+    "watch": "rescript build -w",
+    "clean": "rescript clean",
+    "dev": "node src/Selfspy.bs.js",
+    "start": "node src/Selfspy.bs.js start"
+  },
+  "dependencies": {
+    "@rescript/core": "^1.0.0",
+    "commander": "^11.1.0",
+    "sqlite3": "^5.1.6",
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "rescript": "^11.0.1"
+  },
+  "keywords": [
+    "activity-monitoring",
+    "rescript",
+    "ocaml",
+    "javascript",
+    "system-monitoring"
+  ],
+  "author": "Selfspy Team",
+  "license": "MIT",
+  "homepage": "https://github.com/selfspy/selfspy3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/selfspy/selfspy3.git"
+  }
+}

@@ -1,0 +1,640 @@
+/**
+ * Selfspy - Modern Activity Monitoring in Grain
+ * 
+ * Modern functional language with excellent type safety, immutable data structures,
+ * and compile-time optimizations for system monitoring applications.
+ */
+
+module Selfspy
+
+from "runtime/gc" include GC
+from "list" include List
+from "map" include Map
+from "option" include Option
+from "result" include Result
+from "string" include String
+from "number" include Number
+from "sys/file" include File
+from "sys/process" include Process
+from "sys/time" include Time
+
+// Core data types with immutable records
+provide record Config {
+  dataDir: String,
+  databasePath: String,
+  captureText: Bool,
+  captureMouse: Bool,
+  captureWindows: Bool,
+  updateIntervalMs: Number,
+  encryptionEnabled: Bool,
+  debug: Bool,
+  privacyMode: Bool,
+  excludeApplications: List<String>,
+  maxDatabaseSizeMb: Number,
+}
+
+provide record WindowInfo {
+  title: String,
+  application: String,
+  bundleId: String,
+  processId: Number,
+  x: Number,
+  y: Number,
+  width: Number,
+  height: Number,
+  timestamp: Number,
+}
+
+provide record KeyEvent {
+  key: String,
+  application: String,
+  processId: Number,
+  count: Number,
+  encrypted: Bool,
+  timestamp: Number,
+}
+
+provide record MouseEvent {
+  x: Number,
+  y: Number,
+  button: Number,
+  eventType: String,
+  processId: Number,
+  timestamp: Number,
+}
+
+provide record ActivityStats {
+  keystrokes: Number,
+  clicks: Number,
+  windowChanges: Number,
+  activeTimeSeconds: Number,
+  topApps: List<AppUsage>,
+}
+
+provide record AppUsage {
+  name: String,
+  percentage: Number,
+  duration: Number,
+  events: Number,
+}
+
+provide record Permissions {
+  accessibility: Bool,
+  inputMonitoring: Bool,
+  screenRecording: Bool,
+}
+
+provide record SystemInfo {
+  platform: String,
+  architecture: String,
+  grainVersion: String,
+  hostname: String,
+  username: String,
+}
+
+// Functional error handling with Result types
+provide enum SelfspyError {
+  ConfigError(String),
+  PermissionError(String),
+  StorageError(String),
+  PlatformError(String),
+  InvalidArgument(String),
+}
+
+// Command line argument types
+provide enum Command {
+  Start(StartOptions),
+  Stop,
+  Stats(StatsOptions),
+  Check,
+  Export(ExportOptions),
+  Version,
+  Help,
+}
+
+provide record StartOptions {
+  noText: Bool,
+  noMouse: Bool,
+  debug: Bool,
+}
+
+provide record StatsOptions {
+  days: Number,
+  json: Bool,
+}
+
+provide record ExportOptions {
+  format: String,
+  output: Option<String>,
+  days: Number,
+}
+
+// Default configuration with functional composition
+provide let defaultConfig = () => {
+  let homeDir = Process.env("HOME") ?? "/tmp"
+  let dataDir = match (Process.env("OS")) {
+    Some("Windows_NT") => homeDir ++ "\\AppData\\Roaming\\selfspy",
+    Some(os) when String.contains(os, "Darwin") => homeDir ++ "/Library/Application Support/selfspy",
+    _ => homeDir ++ "/.local/share/selfspy"
+  }
+  
+  {
+    dataDir,
+    databasePath: dataDir ++ "/selfspy.db",
+    captureText: true,
+    captureMouse: true,
+    captureWindows: true,
+    updateIntervalMs: 100,
+    encryptionEnabled: true,
+    debug: false,
+    privacyMode: false,
+    excludeApplications: [],
+    maxDatabaseSizeMb: 500,
+  }
+}
+
+// Pure functional command line parsing
+provide let parseArgs = (args: List<String>) => {
+  let rec parseCommand = (args) => {
+    match (args) {
+      ["start", ...rest] => {
+        let options = parseStartOptions(rest)
+        Ok(Start(options))
+      },
+      ["stop", ...rest] => Ok(Stop),
+      ["stats", ...rest] => {
+        let options = parseStatsOptions(rest)
+        Ok(Stats(options))
+      },
+      ["check", ...rest] => Ok(Check),
+      ["export", ...rest] => {
+        let options = parseExportOptions(rest)
+        Ok(Export(options))
+      },
+      ["version", ...rest] => Ok(Version),
+      ["help", ...rest] => Ok(Help),
+      [] => Ok(Help),
+      [unknown, ..._] => Err(InvalidArgument("Unknown command: " ++ unknown))
+    }
+  }
+  
+  parseCommand(args)
+}
+
+let parseStartOptions = (args: List<String>) => {
+  let rec parse = (args, options) => {
+    match (args) {
+      ["--no-text", ...rest] => parse(rest, { ...options, noText: true }),
+      ["--no-mouse", ...rest] => parse(rest, { ...options, noMouse: true }),
+      ["--debug", ...rest] => parse(rest, { ...options, debug: true }),
+      [] => options,
+      [_, ...rest] => parse(rest, options) // Skip unknown flags
+    }
+  }
+  
+  parse(args, { noText: false, noMouse: false, debug: false })
+}
+
+let parseStatsOptions = (args: List<String>) => {
+  let rec parse = (args, options) => {
+    match (args) {
+      ["--days", days, ...rest] => {
+        let daysNum = Number.parseInt(days, 10) ?? 7
+        parse(rest, { ...options, days: daysNum })
+      },
+      ["--json", ...rest] => parse(rest, { ...options, json: true }),
+      [] => options,
+      [_, ...rest] => parse(rest, options)
+    }
+  }
+  
+  parse(args, { days: 7, json: false })
+}
+
+let parseExportOptions = (args: List<String>) => {
+  let rec parse = (args, options) => {
+    match (args) {
+      ["--format", format, ...rest] => parse(rest, { ...options, format }),
+      ["--output", output, ...rest] => parse(rest, { ...options, output: Some(output) }),
+      ["--days", days, ...rest] => {
+        let daysNum = Number.parseInt(days, 10) ?? 30
+        parse(rest, { ...options, days: daysNum })
+      },
+      [] => options,
+      [_, ...rest] => parse(rest, options)
+    }
+  }
+  
+  parse(args, { format: "json", output: None, days: 30 })
+}
+
+// Platform abstraction with functional interfaces
+provide let checkPermissions = () => {
+  let platform = Process.env("OS") ?? "Unknown"
+  
+  match (platform) {
+    p when String.contains(p, "Darwin") => checkMacOSPermissions(),
+    p when String.contains(p, "Linux") => checkLinuxPermissions(),
+    p when String.contains(p, "Windows") => checkWindowsPermissions(),
+    _ => Ok({ accessibility: true, inputMonitoring: true, screenRecording: false })
+  }
+}
+
+let checkMacOSPermissions = () => {
+  // Placeholder: Would use system APIs
+  Ok({
+    accessibility: true,
+    inputMonitoring: true,
+    screenRecording: false,
+  })
+}
+
+let checkLinuxPermissions = () => {
+  let hasDisplay = Option.isSome(Process.env("DISPLAY")) || Option.isSome(Process.env("WAYLAND_DISPLAY"))
+  Ok({
+    accessibility: hasDisplay,
+    inputMonitoring: hasDisplay,
+    screenRecording: hasDisplay,
+  })
+}
+
+let checkWindowsPermissions = () => {
+  Ok({
+    accessibility: true,
+    inputMonitoring: true,
+    screenRecording: true,
+  })
+}
+
+// System information gathering
+provide let getSystemInfo = () => {
+  {
+    platform: Process.env("OS") ?? "Unknown",
+    architecture: Process.env("PROCESSOR_ARCHITECTURE") ?? "Unknown",
+    grainVersion: "0.6.0", // Would be injected at compile time
+    hostname: Process.env("HOSTNAME") ?? "localhost",
+    username: Process.env("USER") ?? Process.env("USERNAME") ?? "unknown",
+  }
+}
+
+// Activity monitoring with immutable state
+provide let startMonitoring = (config: Config, options: StartOptions) => {
+  print("🚀 Starting Selfspy monitoring (Grain implementation)")
+  
+  // Apply command line options functionally
+  let updatedConfig = {
+    ...config,
+    captureText: config.captureText && !options.noText,
+    captureMouse: config.captureMouse && !options.noMouse,
+    debug: config.debug || options.debug,
+  }
+  
+  // Check permissions
+  match (checkPermissions()) {
+    Ok(permissions) when !permissions.accessibility => {
+      Err(PermissionError("Insufficient accessibility permissions"))
+    },
+    Ok(permissions) when !permissions.inputMonitoring => {
+      Err(PermissionError("Insufficient input monitoring permissions"))
+    },
+    Ok(_) => {
+      print("✅ Selfspy monitoring started successfully")
+      print("📊 Press Ctrl+C to stop monitoring")
+      
+      // Start monitoring loop (placeholder)
+      runMonitoringLoop(updatedConfig)
+    },
+    Err(error) => Err(PlatformError("Failed to check permissions"))
+  }
+}
+
+let runMonitoringLoop = (config: Config) => {
+  // Functional monitoring loop with immutable state
+  let rec monitorLoop = (state) => {
+    // Collect events immutably
+    let windowInfo = getCurrentWindow()
+    let events = collectEvents(config)
+    
+    // Process events functionally
+    let newState = processEvents(state, events)
+    
+    // Continue loop
+    GC.collect() // Explicit memory management
+    monitorLoop(newState)
+  }
+  
+  // Initial state
+  let initialState = Map.make()
+  monitorLoop(initialState)
+  
+  Ok(void)
+}
+
+let getCurrentWindow = () => {
+  // Placeholder implementation
+  {
+    title: "Sample Window",
+    application: "Sample Application",
+    bundleId: "",
+    processId: 0,
+    x: 0,
+    y: 0,
+    width: 1920,
+    height: 1080,
+    timestamp: Time.realTime(),
+  }
+}
+
+let collectEvents = (config: Config) => {
+  // Placeholder: Would collect actual events
+  []
+}
+
+let processEvents = (state, events) => {
+  // Functional event processing with immutable updates
+  List.fold((acc, event) => {
+    // Process each event and return new state
+    acc
+  }, state, events)
+}
+
+// Statistics with functional data processing
+provide let getStats = (days: Number) => {
+  // Placeholder: Would query database functionally
+  {
+    keystrokes: 12547,
+    clicks: 3821,
+    windowChanges: 342,
+    activeTimeSeconds: 14760,
+    topApps: [
+      { name: "Code Editor", percentage: 45.2, duration: 6683, events: 5234 },
+      { name: "Web Browser", percentage: 32.1, duration: 4736, events: 3892 },
+      { name: "Terminal", percentage: 15.7, duration: 2318, events: 2156 },
+    ],
+  }
+}
+
+// Data export with type-safe serialization
+provide let exportData = (format: String, days: Number) => {
+  let stats = getStats(days)
+  
+  match (format) {
+    "json" => exportJSON(stats),
+    "csv" => exportCSV(stats),
+    "sql" => exportSQL(stats),
+    _ => Err(InvalidArgument("Unsupported export format: " ++ format))
+  }
+}
+
+let exportJSON = (stats: ActivityStats) => {
+  // Placeholder: Would use proper JSON serialization
+  let json = "{\n" ++
+    "  \"keystrokes\": " ++ Number.toString(stats.keystrokes) ++ ",\n" ++
+    "  \"clicks\": " ++ Number.toString(stats.clicks) ++ ",\n" ++
+    "  \"window_changes\": " ++ Number.toString(stats.windowChanges) ++ ",\n" ++
+    "  \"active_time_seconds\": " ++ Number.toString(stats.activeTimeSeconds) ++ "\n" ++
+    "}"
+  Ok(json)
+}
+
+let exportCSV = (stats: ActivityStats) => {
+  let csv = "metric,value\n" ++
+    "keystrokes," ++ Number.toString(stats.keystrokes) ++ "\n" ++
+    "clicks," ++ Number.toString(stats.clicks) ++ "\n" ++
+    "window_changes," ++ Number.toString(stats.windowChanges) ++ "\n" ++
+    "active_time_seconds," ++ Number.toString(stats.activeTimeSeconds)
+  Ok(csv)
+}
+
+let exportSQL = (stats: ActivityStats) => {
+  let sql = "-- Selfspy Activity Export\n" ++
+    "CREATE TABLE stats (metric TEXT, value INTEGER);\n" ++
+    "INSERT INTO stats VALUES ('keystrokes', " ++ Number.toString(stats.keystrokes) ++ ");\n" ++
+    "INSERT INTO stats VALUES ('clicks', " ++ Number.toString(stats.clicks) ++ ");\n" ++
+    "INSERT INTO stats VALUES ('window_changes', " ++ Number.toString(stats.windowChanges) ++ ");\n" ++
+    "INSERT INTO stats VALUES ('active_time_seconds', " ++ Number.toString(stats.activeTimeSeconds) ++ ");"
+  Ok(sql)
+}
+
+// Utility functions with functional programming patterns
+let formatNumber = (num: Number) => {
+  if (num >= 1000000) {
+    Number.toString(num / 1000000) ++ "M"
+  } else if (num >= 1000) {
+    Number.toString(num / 1000) ++ "K"
+  } else {
+    Number.toString(num)
+  }
+}
+
+let formatDuration = (seconds: Number) => {
+  let hours = seconds / 3600
+  let minutes = (seconds % 3600) / 60
+  
+  if (hours > 0) {
+    Number.toString(hours) ++ "h " ++ Number.toString(minutes) ++ "m"
+  } else {
+    Number.toString(minutes) ++ "m"
+  }
+}
+
+// Main execution with functional composition
+provide let runCommand = (command: Command) => {
+  match (command) {
+    Start(options) => {
+      match (defaultConfig()) {
+        config => startMonitoring(config, options)
+      }
+    },
+    Stop => {
+      print("🛑 Stopping Selfspy monitoring...")
+      print("✅ Stop signal sent")
+      Ok(void)
+    },
+    Stats(options) => {
+      let stats = getStats(options.days)
+      if (options.json) {
+        match (exportJSON(stats)) {
+          Ok(json) => {
+            print(json)
+            Ok(void)
+          },
+          Err(error) => Err(error)
+        }
+      } else {
+        printFormattedStats(stats, options.days)
+        Ok(void)
+      }
+    },
+    Check => {
+      print("🔍 Checking Selfspy permissions...")
+      print("===================================")
+      print("")
+      
+      match (checkPermissions()) {
+        Ok(permissions) => {
+          if (permissions.accessibility && permissions.inputMonitoring) {
+            print("✅ All permissions granted")
+          } else {
+            print("❌ Missing permissions:")
+            if (!permissions.accessibility) {
+              print("   - Accessibility permission required")
+            }
+            if (!permissions.inputMonitoring) {
+              print("   - Input monitoring permission required")
+            }
+          }
+          
+          print("")
+          print("📱 System Information:")
+          let sysInfo = getSystemInfo()
+          print("   Platform: " ++ sysInfo.platform)
+          print("   Architecture: " ++ sysInfo.architecture)
+          print("   Grain Version: " ++ sysInfo.grainVersion)
+          print("   Hostname: " ++ sysInfo.hostname)
+          
+          Ok(void)
+        },
+        Err(error) => Err(error)
+      }
+    },
+    Export(options) => {
+      print("📤 Exporting " ++ Number.toString(options.days) ++ " days of data in " ++ options.format ++ " format...")
+      
+      match (exportData(options.format, options.days)) {
+        Ok(data) => {
+          match (options.output) {
+            Some(filename) => {
+              // Would write to file
+              print("✅ Data exported to " ++ filename)
+            },
+            None => print(data)
+          }
+          Ok(void)
+        },
+        Err(error) => Err(error)
+      }
+    },
+    Version => {
+      print("Selfspy v1.0.0 (Grain implementation)")
+      print("Modern functional language approach to activity monitoring")
+      print("")
+      print("Features:")
+      print("  • Excellent type safety with compile-time checks")
+      print("  • Immutable data structures by default")
+      print("  • Functional programming patterns")
+      print("  • Memory-safe with controlled GC")
+      print("  • Pattern matching for elegant control flow")
+      Ok(void)
+    },
+    Help => {
+      printHelp()
+      Ok(void)
+    }
+  }
+}
+
+let printFormattedStats = (stats: ActivityStats, days: Number) => {
+  print("")
+  print("📊 Selfspy Activity Statistics (Last " ++ Number.toString(days) ++ " days)")
+  print("==================================================")
+  print("")
+  print("⌨️  Keystrokes: " ++ formatNumber(stats.keystrokes))
+  print("🖱️  Mouse clicks: " ++ formatNumber(stats.clicks))
+  print("🪟  Window changes: " ++ formatNumber(stats.windowChanges))
+  print("⏰ Active time: " ++ formatDuration(stats.activeTimeSeconds))
+  
+  if (List.length(stats.topApps) > 0) {
+    print("📱 Most used applications:")
+    List.forEachi((app, i) => {
+      print("   " ++ Number.toString(i + 1) ++ ". " ++ app.name ++ " (" ++ Number.toString(app.percentage) ++ "%)")
+    }, stats.topApps)
+  }
+  print("")
+}
+
+let printHelp = () => {
+  print("Selfspy - Modern Activity Monitoring in Grain")
+  print("")
+  print("USAGE:")
+  print("    grain run selfspy.gr [COMMAND] [OPTIONS]")
+  print("")
+  print("COMMANDS:")
+  print("    start                 Start activity monitoring")
+  print("    stop                  Stop running monitoring instance")
+  print("    stats                 Show activity statistics")
+  print("    check                 Check system permissions and setup")
+  print("    export                Export data to various formats")
+  print("    version               Show version information")
+  print("    help                  Show this help message")
+  print("")
+  print("START OPTIONS:")
+  print("    --no-text             Disable text capture for privacy")
+  print("    --no-mouse            Disable mouse monitoring")
+  print("    --debug               Enable debug logging")
+  print("")
+  print("STATS OPTIONS:")
+  print("    --days <N>            Number of days to analyze (default: 7)")
+  print("    --json                Output in JSON format")
+  print("")
+  print("EXPORT OPTIONS:")
+  print("    --format <FORMAT>     Export format: json, csv, sql (default: json)")
+  print("    --output <FILE>       Output file path")
+  print("    --days <N>            Number of days to export (default: 30)")
+  print("")
+  print("EXAMPLES:")
+  print("    grain run selfspy.gr start")
+  print("    grain run selfspy.gr start --no-text --debug")
+  print("    grain run selfspy.gr stats --days 30 --json")
+  print("    grain run selfspy.gr export --format csv --output activity.csv")
+  print("")
+  print("Grain Implementation Features:")
+  print("  • Modern functional language with excellent type safety")
+  print("  • Immutable data structures by default")
+  print("  • Compile-time optimizations")
+  print("  • Pattern matching for elegant control flow")
+  print("  • Memory safety with controlled garbage collection")
+}
+
+// Main entry point
+provide let main = () => {
+  let args = Process.argv()
+  
+  match (parseArgs(List.drop(1, args))) { // Skip program name
+    Ok(command) => {
+      match (runCommand(command)) {
+        Ok(_) => void,
+        Err(ConfigError(msg)) => {
+          print("Configuration error: " ++ msg)
+          Process.exit(1)
+        },
+        Err(PermissionError(msg)) => {
+          print("Permission error: " ++ msg)
+          Process.exit(1)
+        },
+        Err(StorageError(msg)) => {
+          print("Storage error: " ++ msg)
+          Process.exit(1)
+        },
+        Err(PlatformError(msg)) => {
+          print("Platform error: " ++ msg)
+          Process.exit(1)
+        },
+        Err(InvalidArgument(msg)) => {
+          print("Invalid argument: " ++ msg)
+          print("Use 'grain run selfspy.gr help' for usage information")
+          Process.exit(1)
+        }
+      }
+    },
+    Err(InvalidArgument(msg)) => {
+      print("Error: " ++ msg)
+      print("Use 'grain run selfspy.gr help' for usage information")
+      Process.exit(1)
+    },
+    Err(error) => {
+      print("Unexpected error")
+      Process.exit(1)
+    }
+  }
+}

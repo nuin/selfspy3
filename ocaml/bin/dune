@@ -1,0 +1,5 @@
+(executable
+ (public_name selfspy)
+ (name main)
+ (libraries selfspy lwt lwt.unix cmdliner logs fmt)
+ (preprocess (pps lwt_ppx)))

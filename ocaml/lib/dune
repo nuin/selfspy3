@@ -1,0 +1,5 @@
+(library
+ (public_name selfspy)
+ (name selfspy)
+ (libraries lwt lwt.unix yojson sqlite3 logs fmt unix-time cryptokit base64 calendar)
+ (preprocess (pps lwt_ppx)))

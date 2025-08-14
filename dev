@@ -18,6 +18,90 @@ case "$1" in
         cd objective-c
         exec "${@:2}"
         ;;
+    "nim")
+        cd nim
+        exec "${@:2}"
+        ;;
+    "crystal")
+        cd crystal
+        exec "${@:2}"
+        ;;
+    "zig")
+        cd zig
+        exec "${@:2}"
+        ;;
+    "v")
+        cd v
+        exec "${@:2}"
+        ;;
+    "haskell")
+        cd haskell
+        exec "${@:2}"
+        ;;
+    "dart")
+        cd dart
+        exec "${@:2}"
+        ;;
+    "go")
+        cd go
+        exec "${@:2}"
+        ;;
+    "grain")
+        cd grain
+        exec "${@:2}"
+        ;;
+    "gleam")
+        cd gleam
+        exec "${@:2}"
+        ;;
+    "pony")
+        cd pony
+        exec "${@:2}"
+        ;;
+    "roc")
+        cd roc
+        exec "${@:2}"
+        ;;
+    "ocaml")
+        cd ocaml
+        exec "${@:2}"
+        ;;
+    "fsharp"|"f#")
+        cd fsharp
+        exec "${@:2}"
+        ;;
+    "rescript")
+        cd rescript
+        exec "${@:2}"
+        ;;
+    "odin")
+        cd odin
+        exec "${@:2}"
+        ;;
+    "janet")
+        cd janet
+        exec "${@:2}"
+        ;;
+    "red")
+        cd red
+        exec "${@:2}"
+        ;;
+    "lobster")
+        cd lobster
+        exec "${@:2}"
+        ;;
+    "inko")
+        cd inko
+        exec "${@:2}"
+        ;;
+    "koka")
+        cd koka
+        exec "${@:2}"
+        ;;
+    "kotlin")
+        cd kotlin
+        exec "${@:2}"
+        ;;
     "test")
         echo "Running all tests..."
         ./shared/scripts/run-tests.sh
@@ -41,6 +125,27 @@ case "$1" in
         echo "  rust                      - Switch to Rust implementation"
         echo "  elixir|phoenix           - Switch to Elixir/Phoenix implementation"
         echo "  objective-c|objc|macos   - Switch to Objective-C implementation"
+        echo "  nim                      - Switch to Nim implementation"
+        echo "  crystal                  - Switch to Crystal implementation"
+        echo "  zig                      - Switch to Zig implementation"
+        echo "  v                        - Switch to V implementation"
+        echo "  haskell                  - Switch to Haskell implementation"
+        echo "  dart                     - Switch to Dart implementation"
+        echo "  go                       - Switch to Go implementation"
+        echo "  grain                    - Switch to Grain implementation"
+        echo "  gleam                    - Switch to Gleam implementation"
+        echo "  pony                     - Switch to Pony implementation"
+        echo "  roc                      - Switch to Roc implementation"
+        echo "  ocaml                    - Switch to OCaml implementation"
+        echo "  fsharp|f#               - Switch to F# implementation"
+        echo "  rescript                 - Switch to ReScript implementation"
+        echo "  odin                     - Switch to Odin implementation"
+        echo "  janet                    - Switch to Janet implementation"
+        echo "  red                      - Switch to Red implementation"
+        echo "  lobster                  - Switch to Lobster implementation"
+        echo "  inko                     - Switch to Inko implementation"
+        echo "  koka                     - Switch to Koka implementation"
+        echo "  kotlin                   - Switch to Kotlin implementation"
         echo ""
         echo "Commands:"
         echo "  test                     - Run all tests"
@@ -52,6 +157,27 @@ case "$1" in
         echo "  ./dev rust cargo run --bin selfspy-gui"
         echo "  ./dev elixir mix phx.server"
         echo "  ./dev objective-c make all"
+        echo "  ./dev nim nimble run selfspy start"
+        echo "  ./dev crystal shards run selfspy start"
+        echo "  ./dev zig zig build run -- start"
+        echo "  ./dev v v run selfspy.v start"
+        echo "  ./dev haskell cabal run selfspy start"
+        echo "  ./dev dart dart run bin/selfspy.dart start"
+        echo "  ./dev go go run cmd/selfspy/main.go start"
+        echo "  ./dev grain grain run grain.gr start"
+        echo "  ./dev gleam gleam run start"
+        echo "  ./dev pony ponyc . && ./selfspy start"
+        echo "  ./dev roc roc run main.roc start"
+        echo "  ./dev ocaml dune exec selfspy start"
+        echo "  ./dev fsharp dotnet run start"
+        echo "  ./dev rescript npm run start"
+        echo "  ./dev odin ./selfspy start"
+        echo "  ./dev janet janet selfspy.janet start"
+        echo "  ./dev red red selfspy.red start"
+        echo "  ./dev lobster lobster selfspy.lobster start"
+        echo "  ./dev inko inko run selfspy.inko start"
+        echo "  ./dev koka koka selfspy.kk start"
+        echo "  ./dev kotlin ./gradlew run --args='start'"
         echo "  ./dev test"
         echo "  ./dev build"
         ;;

@@ -1,0 +1,670 @@
+# Selfspy - Modern Activity Monitoring in Inko
+#
+# Safe, concurrent object-oriented language with gradual typing,
+# excellent for building concurrent and fault-tolerant systems.
+
+import std.env
+import std.fs.file
+import std.fs.path
+import std.int
+import std.io
+import std.json
+import std.net.ip
+import std.option (Option)
+import std.process
+import std.result (Result)
+import std.string
+import std.time
+
+# Core data structures with gradual typing
+class Config {
+  let @data_dir: String
+  let @database_path: String
+  let @capture_text: Bool
+  let @capture_mouse: Bool
+  let @capture_windows: Bool
+  let @update_interval_ms: Int
+  let @encryption_enabled: Bool
+  let @debug: Bool
+  let @privacy_mode: Bool
+  let @exclude_applications: Array[String]
+  let @max_database_size_mb: Int
+}
+
+class WindowInfo {
+  let @title: String
+  let @application: String
+  let @bundle_id: String
+  let @process_id: Int
+  let @x: Int
+  let @y: Int
+  let @width: Int
+  let @height: Int
+  let @timestamp: Int
+}
+
+class KeyEvent {
+  let @key: String
+  let @application: String
+  let @process_id: Int
+  let @count: Int
+  let @encrypted: Bool
+  let @timestamp: Int
+}
+
+class MouseEvent {
+  let @x: Int
+  let @y: Int
+  let @button: Int
+  let @event_type: String
+  let @process_id: Int
+  let @timestamp: Int
+}
+
+class ActivityStats {
+  let @keystrokes: Int
+  let @clicks: Int
+  let @window_changes: Int
+  let @active_time_seconds: Int
+  let @top_apps: Array[AppUsage]
+}
+
+class AppUsage {
+  let @name: String
+  let @percentage: Float
+  let @duration: Int
+  let @events: Int
+}
+
+class Permissions {
+  let @accessibility: Bool
+  let @input_monitoring: Bool
+  let @screen_recording: Bool
+}
+
+class SystemInfo {
+  let @platform: String
+  let @architecture: String
+  let @inko_version: String
+  let @hostname: String
+  let @username: String
+}
+
+# Command line options with Inko's class syntax
+class StartOptions {
+  let @no_text: Bool
+  let @no_mouse: Bool
+  let @debug: Bool
+}
+
+class StatsOptions {
+  let @days: Int
+  let @json: Bool
+}
+
+class ExportOptions {
+  let @format: String
+  let @output: Option[String]
+  let @days: Int
+}
+
+# Error types with Inko's error handling
+class SelfspyError {
+  let @message: String
+}
+
+# Platform detection using Inko's OS detection
+fn get_os -> String {
+  match process.os {
+    case Windows -> "windows"
+    case Linux -> "linux"
+    case Mac -> "darwin"
+    case _ -> "unknown"
+  }
+}
+
+# Configuration management with safe defaults
+fn get_home_dir -> String {
+  match env.get("HOME") {
+    case Some(home) -> home
+    case None -> "/tmp"
+  }
+}
+
+fn get_data_dir -> String {
+  let home = get_home_dir
+  
+  match get_os {
+    case "windows" -> {
+      match env.get("APPDATA") {
+        case Some(appdata) -> "${appdata}/selfspy"
+        case None -> "${home}/selfspy"
+      }
+    }
+    case "darwin" -> "${home}/Library/Application Support/selfspy"
+    case _ -> "${home}/.local/share/selfspy"
+  }
+}
+
+fn default_config -> Config {
+  let data_dir = get_data_dir
+  
+  Config {
+    @data_dir = data_dir,
+    @database_path = "${data_dir}/selfspy.db",
+    @capture_text = true,
+    @capture_mouse = true,
+    @capture_windows = true,
+    @update_interval_ms = 100,
+    @encryption_enabled = true,
+    @debug = false,
+    @privacy_mode = false,
+    @exclude_applications = [],
+    @max_database_size_mb = 500
+  }
+}
+
+# Command line parsing with pattern matching
+fn parse_start_options(args: Array[String]) -> StartOptions {
+  let mut no_text = false
+  let mut no_mouse = false
+  let mut debug = false
+  
+  args.iter.each fn (arg) {
+    match arg {
+      case "--no-text" -> no_text = true
+      case "--no-mouse" -> no_mouse = true
+      case "--debug" -> debug = true
+      case _ -> {}
+    }
+  }
+  
+  StartOptions { @no_text = no_text, @no_mouse = no_mouse, @debug = debug }
+}
+
+fn parse_stats_options(args: Array[String]) -> StatsOptions {
+  let mut days = 7
+  let mut json = false
+  let mut i = 0
+  
+  while i < args.length {
+    match args.get(i) {
+      case Some("--days") -> {
+        match args.get(i + 1) {
+          case Some(day_str) -> {
+            match Int.parse(day_str, 10) {
+              case Ok(parsed_days) -> days = parsed_days
+              case Error(_) -> {}
+            }
+            i += 1
+          }
+          case None -> {}
+        }
+      }
+      case Some("--json") -> json = true
+      case _ -> {}
+    }
+    i += 1
+  }
+  
+  StatsOptions { @days = days, @json = json }
+}
+
+fn parse_export_options(args: Array[String]) -> ExportOptions {
+  let mut format = "json"
+  let mut output = Option.None
+  let mut days = 30
+  let mut i = 0
+  
+  while i < args.length {
+    match args.get(i) {
+      case Some("--format") -> {
+        match args.get(i + 1) {
+          case Some(fmt) -> {
+            format = fmt
+            i += 1
+          }
+          case None -> {}
+        }
+      }
+      case Some("--output") -> {
+        match args.get(i + 1) {
+          case Some(out) -> {
+            output = Option.Some(out)
+            i += 1
+          }
+          case None -> {}
+        }
+      }
+      case Some("--days") -> {
+        match args.get(i + 1) {
+          case Some(day_str) -> {
+            match Int.parse(day_str, 10) {
+              case Ok(parsed_days) -> days = parsed_days
+              case Error(_) -> {}
+            }
+            i += 1
+          }
+          case None -> {}
+        }
+      }
+      case _ -> {}
+    }
+    i += 1
+  }
+  
+  ExportOptions { @format = format, @output = output, @days = days }
+}
+
+# Platform abstraction with safe error handling
+fn check_permissions -> Permissions {
+  match get_os {
+    case "darwin" -> {
+      # macOS permission checking (placeholder)
+      Permissions {
+        @accessibility = true,
+        @input_monitoring = true,
+        @screen_recording = false
+      }
+    }
+    case "linux" -> {
+      # Check for display server
+      let display = env.get("DISPLAY").is_some
+      let wayland = env.get("WAYLAND_DISPLAY").is_some
+      let has_display = display || wayland
+      
+      Permissions {
+        @accessibility = has_display,
+        @input_monitoring = has_display,
+        @screen_recording = has_display
+      }
+    }
+    case "windows" -> {
+      Permissions {
+        @accessibility = true,
+        @input_monitoring = true,
+        @screen_recording = true
+      }
+    }
+    case _ -> {
+      Permissions {
+        @accessibility = true,
+        @input_monitoring = true,
+        @screen_recording = false
+      }
+    }
+  }
+}
+
+fn has_all_permissions(permissions: ref Permissions) -> Bool {
+  permissions.accessibility && permissions.input_monitoring
+}
+
+fn request_permissions -> Bool {
+  match get_os {
+    case "darwin" -> {
+      io.print("Please grant accessibility permissions in System Preferences")
+      io.print("Security & Privacy > Privacy > Accessibility")
+      true
+    }
+    case _ -> true
+  }
+}
+
+# System information gathering with safe error handling
+fn get_system_info -> SystemInfo {
+  let hostname = env.get("HOSTNAME").unwrap_or("localhost")
+  let username = env.get("USER").or_else fn { env.get("USERNAME") }.unwrap_or("unknown")
+  
+  SystemInfo {
+    @platform = get_os,
+    @architecture = "unknown", # Inko doesn't expose this directly
+    @inko_version = "0.13.2", # Current Inko version
+    @hostname = hostname,
+    @username = username
+  }
+}
+
+# Activity monitoring with concurrent programming
+class Monitor {
+  let @running: Bool
+  let @events_processed: Int
+  let @config: Config
+}
+
+fn start_monitoring(options: StartOptions) -> Result[Nil, SelfspyError] {
+  io.print("🚀 Starting Selfspy monitoring (Inko implementation)")
+  
+  let config = default_config
+  config.capture_text = config.capture_text && !options.no_text
+  config.capture_mouse = config.capture_mouse && !options.no_mouse
+  config.debug = config.debug || options.debug
+  
+  # Check permissions
+  let permissions = check_permissions
+  
+  if !has_all_permissions(permissions) {
+    io.print("❌ Insufficient permissions for monitoring")
+    io.print("Missing permissions:")
+    
+    if !permissions.accessibility {
+      io.print("   - Accessibility permission required")
+    }
+    
+    if !permissions.input_monitoring {
+      io.print("   - Input monitoring permission required")
+    }
+    
+    io.print("")
+    io.print("Attempting to request permissions...")
+    
+    if !request_permissions {
+      return Result.Error(SelfspyError { @message = "Failed to obtain required permissions" })
+    }
+  }
+  
+  # Create data directory if needed
+  try path.create_directory_all(config.data_dir) else {
+    return Result.Error(SelfspyError { @message = "Failed to create data directory" })
+  }
+  
+  let monitor = Monitor {
+    @running = true,
+    @events_processed = 0,
+    @config = config
+  }
+  
+  io.print("✅ Selfspy monitoring started successfully")
+  io.print("📊 Press Ctrl+C to stop monitoring")
+  
+  # Monitoring loop with cooperative concurrency
+  while monitor.running {
+    # Simulate event collection
+    monitor.events_processed += 1
+    
+    # Sleep for update interval
+    let sleep_duration = time.Duration.from_millis(config.update_interval_ms)
+    time.sleep(sleep_duration)
+  }
+  
+  Result.Ok(nil)
+}
+
+fn stop_monitoring -> Result[Nil, SelfspyError] {
+  io.print("🛑 Stopping Selfspy monitoring...")
+  io.print("✅ Stop signal sent")
+  Result.Ok(nil)
+}
+
+# Statistics with functional data processing
+fn get_stats(days: Int) -> ActivityStats {
+  # Placeholder: Would query actual database
+  let top_apps = [
+    AppUsage { @name = "Code Editor", @percentage = 45.2, @duration = 6683, @events = 5234 },
+    AppUsage { @name = "Web Browser", @percentage = 32.1, @duration = 4736, @events = 3892 },
+    AppUsage { @name = "Terminal", @percentage = 15.7, @duration = 2318, @events = 2156 }
+  ]
+  
+  ActivityStats {
+    @keystrokes = 12547,
+    @clicks = 3821,
+    @window_changes = 342,
+    @active_time_seconds = 14760,
+    @top_apps = top_apps
+  }
+}
+
+fn show_stats(options: StatsOptions) -> Result[Nil, SelfspyError] {
+  let stats = get_stats(options.days)
+  
+  if options.json {
+    # JSON output (simplified)
+    io.print("{")
+    io.print("  \"keystrokes\": ${stats.keystrokes},")
+    io.print("  \"clicks\": ${stats.clicks},")
+    io.print("  \"window_changes\": ${stats.window_changes},")
+    io.print("  \"active_time_seconds\": ${stats.active_time_seconds}")
+    io.print("}")
+  } else {
+    print_formatted_stats(stats, options.days)
+  }
+  
+  Result.Ok(nil)
+}
+
+# Data export with safe string manipulation
+fn export_data(options: ExportOptions) -> Result[Nil, SelfspyError] {
+  io.print("📤 Exporting ${options.days} days of data in ${options.format} format...")
+  
+  let stats = get_stats(options.days)
+  
+  let data = match options.format {
+    case "json" -> {
+      "{" +
+      "\"keystrokes\":${stats.keystrokes}," +
+      "\"clicks\":${stats.clicks}," +
+      "\"window_changes\":${stats.window_changes}," +
+      "\"active_time_seconds\":${stats.active_time_seconds}" +
+      "}"
+    }
+    case "csv" -> {
+      "metric,value\n" +
+      "keystrokes,${stats.keystrokes}\n" +
+      "clicks,${stats.clicks}\n" +
+      "window_changes,${stats.window_changes}\n" +
+      "active_time_seconds,${stats.active_time_seconds}"
+    }
+    case "sql" -> {
+      "-- Selfspy Activity Export\n" +
+      "CREATE TABLE stats (metric TEXT, value INTEGER);\n" +
+      "INSERT INTO stats VALUES ('keystrokes', ${stats.keystrokes});\n" +
+      "INSERT INTO stats VALUES ('clicks', ${stats.clicks});\n" +
+      "INSERT INTO stats VALUES ('window_changes', ${stats.window_changes});\n" +
+      "INSERT INTO stats VALUES ('active_time_seconds', ${stats.active_time_seconds});"
+    }
+    case _ -> {
+      return Result.Error(SelfspyError { @message = "Unsupported export format: ${options.format}" })
+    }
+  }
+  
+  match options.output {
+    case Some(output_path) -> {
+      try file.write_string(output_path, data) else {
+        return Result.Error(SelfspyError { @message = "Failed to write to file: ${output_path}" })
+      }
+      io.print("✅ Data exported to ${output_path}")
+    }
+    case None -> {
+      io.print(data)
+    }
+  }
+  
+  Result.Ok(nil)
+}
+
+fn check_system -> Result[Nil, SelfspyError] {
+  io.print("🔍 Checking Selfspy permissions...")
+  io.print("===================================")
+  io.print("")
+  
+  let permissions = check_permissions
+  
+  if has_all_permissions(permissions) {
+    io.print("✅ All permissions granted")
+  } else {
+    io.print("❌ Missing permissions:")
+    
+    if !permissions.accessibility {
+      io.print("   - Accessibility permission required")
+    }
+    
+    if !permissions.input_monitoring {
+      io.print("   - Input monitoring permission required")
+    }
+  }
+  
+  io.print("")
+  io.print("📱 System Information:")
+  let sys_info = get_system_info
+  io.print("   Platform: ${sys_info.platform}")
+  io.print("   Architecture: ${sys_info.architecture}")
+  io.print("   Inko Version: ${sys_info.inko_version}")
+  io.print("   Hostname: ${sys_info.hostname}")
+  io.print("   Username: ${sys_info.username}")
+  
+  Result.Ok(nil)
+}
+
+fn show_version -> Result[Nil, SelfspyError] {
+  io.print("Selfspy v1.0.0 (Inko implementation)")
+  io.print("Safe, concurrent object-oriented language")
+  io.print("")
+  io.print("Features:")
+  io.print("  • Safe concurrent programming")
+  io.print("  • Gradual typing system")
+  io.print("  • Object-oriented design")
+  io.print("  • Excellent error handling")
+  io.print("  • Memory safety without GC")
+  io.print("  • Perfect for fault-tolerant systems")
+  
+  Result.Ok(nil)
+}
+
+# Utility functions with safe number formatting
+fn format_number(num: Int) -> String {
+  if num >= 1000000 {
+    "${num / 1000000}M"
+  } else if num >= 1000 {
+    "${num / 1000}K"
+  } else {
+    num.to_string
+  }
+}
+
+fn format_duration(seconds: Int) -> String {
+  let hours = seconds / 3600
+  let minutes = (seconds % 3600) / 60
+  
+  if hours > 0 {
+    "${hours}h ${minutes}m"
+  } else {
+    "${minutes}m"
+  }
+}
+
+fn print_formatted_stats(stats: ref ActivityStats, days: Int) {
+  io.print("")
+  io.print("📊 Selfspy Activity Statistics (Last ${days} days)")
+  io.print("==================================================")
+  io.print("")
+  io.print("⌨️  Keystrokes: ${format_number(stats.keystrokes)}")
+  io.print("🖱️  Mouse clicks: ${format_number(stats.clicks)}")
+  io.print("🪟  Window changes: ${format_number(stats.window_changes)}")
+  io.print("⏰ Active time: ${format_duration(stats.active_time_seconds)}")
+  
+  if stats.top_apps.length > 0 {
+    io.print("📱 Most used applications:")
+    stats.top_apps.iter.with_index.each fn (app, i) {
+      io.print("   ${i + 1}. ${app.name} (${app.percentage}%)")
+    }
+  }
+  
+  io.print("")
+}
+
+fn print_help {
+  io.print("Selfspy - Modern Activity Monitoring in Inko")
+  io.print("")
+  io.print("USAGE:")
+  io.print("    inko run selfspy.inko [COMMAND] [OPTIONS]")
+  io.print("")
+  io.print("COMMANDS:")
+  io.print("    start                 Start activity monitoring")
+  io.print("    stop                  Stop running monitoring instance")
+  io.print("    stats                 Show activity statistics")
+  io.print("    check                 Check system permissions and setup")
+  io.print("    export                Export data to various formats")
+  io.print("    version               Show version information")
+  io.print("    help                  Show this help message")
+  io.print("")
+  io.print("START OPTIONS:")
+  io.print("    --no-text             Disable text capture for privacy")
+  io.print("    --no-mouse            Disable mouse monitoring")
+  io.print("    --debug               Enable debug logging")
+  io.print("")
+  io.print("STATS OPTIONS:")
+  io.print("    --days <N>            Number of days to analyze (default: 7)")
+  io.print("    --json                Output in JSON format")
+  io.print("")
+  io.print("EXPORT OPTIONS:")
+  io.print("    --format <FORMAT>     Export format: json, csv, sql (default: json)")
+  io.print("    --output <FILE>       Output file path")
+  io.print("    --days <N>            Number of days to export (default: 30)")
+  io.print("")
+  io.print("EXAMPLES:")
+  io.print("    inko run selfspy.inko start")
+  io.print("    inko run selfspy.inko start --no-text --debug")
+  io.print("    inko run selfspy.inko stats --days 30 --json")
+  io.print("    inko run selfspy.inko export --format csv --output activity.csv")
+  io.print("")
+  io.print("Inko Implementation Features:")
+  io.print("  • Safe concurrent programming with isolated processes")
+  io.print("  • Gradual typing for flexibility and safety")
+  io.print("  • Object-oriented design with message passing")
+  io.print("  • Excellent error handling with Result types")
+  io.print("  • Memory safety without garbage collection")
+  io.print("  • Perfect for building fault-tolerant systems")
+}
+
+# Command execution with comprehensive error handling
+fn execute_command(command: String, args: Array[String]) -> Result[Nil, SelfspyError] {
+  match command {
+    case "start" -> {
+      let options = parse_start_options(args)
+      start_monitoring(options)
+    }
+    case "stop" -> stop_monitoring
+    case "stats" -> {
+      let options = parse_stats_options(args)
+      show_stats(options)
+    }
+    case "check" -> check_system
+    case "export" -> {
+      let options = parse_export_options(args)
+      export_data(options)
+    }
+    case "version" -> show_version
+    case "help" -> {
+      print_help
+      Result.Ok(nil)
+    }
+    case _ -> {
+      io.print("Error: Unknown command: ${command}")
+      io.print("Use 'inko run selfspy.inko help' for usage information")
+      Result.Error(SelfspyError { @message = "Invalid command" })
+    }
+  }
+}
+
+# Main entry point with safe argument handling
+class Main {
+  fn async main {
+    let args = env.arguments
+    
+    if args.length == 0 {
+      print_help
+      return
+    }
+    
+    let command = args.get(0).unwrap_or("help")
+    let command_args = args.slice(1, args.length)
+    
+    match execute_command(command, command_args) {
+      case Ok(_) -> {}
+      case Error(err) -> {
+        io.print("Error: ${err.message}")
+        process.exit(1)
+      }
+    }
+  }
+}

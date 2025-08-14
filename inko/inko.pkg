@@ -1,0 +1,21 @@
+# Inko package configuration for Selfspy
+#
+# Defines the package metadata and dependencies for the Inko implementation
+
+[package]
+name = "selfspy"
+version = "1.0.0"
+authors = ["Selfspy Team"]
+description = "Modern activity monitoring system implemented in Inko"
+license = "MIT"
+
+[dependencies]
+# Inko standard library modules are imported directly
+# No external dependencies required for basic functionality
+
+[dev-dependencies]
+# Development dependencies would go here if needed
+
+[target]
+# Target configuration for different platforms
+# Inko automatically handles cross-platform compilation
