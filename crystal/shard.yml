@@ -20,34 +20,13 @@ targets:
     main: src/selfviz.cr
 
 dependencies:
-  cron_parser:
-    github: kostya/cron_parser
-    version: "~> 0.4.0"
-  
   db:
     github: crystal-lang/crystal-db
     version: "~> 0.12.0"
-    
+
   sqlite3:
     github: crystal-lang/crystal-sqlite3
     version: "~> 0.20.0"
-    
-  json_mapping:
-    github: crystal-lang/json_mapping.cr
-    version: "~> 0.1.0"
-    
-  yaml:
-    github: crystal-lang/crystal-yaml
-    version: "~> 0.1.0"
-
-  option_parser:
-    github: crystal-lang/crystal
-    
-  log:
-    github: crystal-lang/crystal
-    
-  crypto:
-    github: crystal-lang/crystal
 
 development_dependencies:
   spec:

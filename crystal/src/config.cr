@@ -108,7 +108,7 @@ module Selfspy
       {% end %}
     end
     
-    private def self.config_path : String
+    def self.config_path : String
       {% if flag?(:darwin) %}
         File.expand_path("~/Library/Application Support/selfspy/config.yaml")
       {% elsif flag?(:linux) %}

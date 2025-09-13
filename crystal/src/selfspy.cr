@@ -2,6 +2,7 @@ require "option_parser"
 require "log"
 require "json"
 require "yaml"
+require "base64"
 require "./config"
 require "./monitor"
 require "./storage"
@@ -44,7 +45,7 @@ module Selfspy
       end
       
       # Initialize storage
-      @storage.initialize
+      @storage.initialize!
       
       # Start monitoring
       @monitor.start
@@ -74,7 +75,7 @@ module Selfspy
     def stats(days : Int32 = 7, json_format : Bool = false)
       Log.info { "Generating statistics for #{days} days" }
       
-      @storage.initialize unless @storage.initialized?
+      @storage.initialize! unless @storage.initialized?
       stats = @storage.get_stats(days)
       
       if json_format
@@ -114,7 +115,7 @@ module Selfspy
     def export(format : String = "json", output : String? = nil, days : Int32 = 30)
       Log.info { "Exporting #{days} days of data in #{format} format" }
       
-      @storage.initialize unless @storage.initialized?
+      @storage.initialize! unless @storage.initialized?
       
       case format.downcase
       when "json"
