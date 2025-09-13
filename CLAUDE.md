@@ -4,15 +4,64 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Selfspy is a modern Python daemon for monitoring and analyzing computer activity. It continuously monitors:
+Selfspy is a comprehensive activity monitoring suite with implementations in multiple programming languages. It continuously monitors:
 - Keystrokes (encrypted for security)
 - Mouse movements and clicks
 - Active window titles and processes
 - Activity periods
 
-The project uses modern Python (3.10+) with async/await patterns and SQLAlchemy 2.0.
+This is a multi-language project with implementations in Python (primary), Rust, Elixir/Phoenix, Objective-C, Nim, Crystal, Zig, and more. The Python implementation is the most mature and feature-complete.
 
-## Development Commands
+## Project Structure
+
+```
+selfspy3/
+├── python/           # 🐍 Main Python implementation (most mature)
+├── rust/             # 🦀 Rust implementation with GUI
+├── elixir/           # 🔥 Phoenix web interface
+├── objective-c/      # 🍎 macOS native widgets
+├── nim/              # ⚡ Nim compiled implementation
+├── crystal/          # 💎 Crystal implementation
+├── zig/              # ⚡ Zig high-performance implementation
+├── [other langs]/    # Additional language implementations
+├── shared/           # Shared resources and scripts
+├── tools/            # Development tools
+└── dev               # Multi-language development helper script
+```
+
+## Multi-Language Development
+
+Use the `./dev` helper script to work with different implementations:
+
+```bash
+# Work with Python (most mature implementation)
+./dev python uv run selfspy start
+./dev python uv run pytest
+
+# Work with Rust implementation
+./dev rust cargo build --release
+./dev rust cargo run --bin selfspy-gui
+
+# Work with Elixir/Phoenix web interface
+./dev elixir mix phx.server
+./dev elixir mix test
+
+# Work with other implementations
+./dev objective-c make all          # macOS widgets
+./dev nim nimble build              # Nim compiled
+./dev crystal shards build         # Crystal compiled
+./dev zig zig build                 # Zig performance
+
+# Language-agnostic commands
+./dev test                          # Run all tests
+./dev build                         # Build all implementations
+```
+
+**Note**: You are currently on the `elixir-phoenix-implementation` branch, which indicates active development on the Elixir/Phoenix web interface implementation.
+
+## Python Implementation Commands
+
+The following commands are specific to the Python implementation (located in `python/` directory):
 
 ### Setup and Installation
 
@@ -132,19 +181,19 @@ pre-commit run --all-files
 
 ### Core Components
 
-**Entry Points (`src/cli.py` and `src/stats.py`)**
+**Entry Points (`python/src/cli.py` and `python/src/stats.py`)**
 - Uses Typer for modern CLI interface with Rich output
 - Main commands: `start` (monitoring), `stats` (analysis), `check-permissions`
 - Handles async event loops and signal handling
 
-**Activity Monitor (`src/activity_monitor.py`)**
+**Activity Monitor (`python/src/activity_monitor.py`)**
 - Central orchestrator using async patterns
 - Manages platform-specific trackers (keyboard, mouse, window)
 - Includes terminal command tracking (background task)
 - Maintains live dashboard during monitoring
 - Buffers keystrokes before storage to reduce I/O
 
-**Terminal Tracking (`src/terminal_tracker.py` and `src/terminal_stats.py`)**
+**Terminal Tracking (`python/src/terminal_tracker.py` and `python/src/terminal_stats.py`)**
 - Monitors shell command history files (bash, zsh, fish)
 - Tracks commands by working directory and project context
 - Categorizes commands by type (git, npm, python, etc.)
@@ -152,11 +201,11 @@ pre-commit run --all-files
 - Provides rich analytics and visualizations for development workflows
 
 **Data Layer**
-- `src/models.py`: SQLAlchemy 2.0 models with modern mapped_column syntax
-- `src/activity_store.py`: Database operations with async session management
-- `src/encryption.py`: Handles keystroke encryption using cryptography library
+- `python/src/models.py`: SQLAlchemy 2.0 models with modern mapped_column syntax
+- `python/src/activity_store.py`: Database operations with async session management
+- `python/src/encryption.py`: Handles keystroke encryption using cryptography library
 
-**Platform Abstraction (`src/platform/`)**
+**Platform Abstraction (`python/src/platform/`)**
 - `base.py`: Abstract interfaces for cross-platform support
 - `darwin.py`: macOS-specific implementations using PyObjC
 - `fallback.py`: Basic implementations for other platforms
@@ -182,7 +231,7 @@ Uses SQLAlchemy 2.0 with declarative base and relationships:
 
 All tables include timestamp mixins and proper indexing for performance.
 
-### Configuration (`src/config.py`)
+### Configuration (`python/src/config.py`)
 
 Uses Pydantic Settings for type-safe configuration:
 - Environment variable support with `SELFSPY_` prefix
