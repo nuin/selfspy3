@@ -22,7 +22,7 @@ defmodule SelfspyCLI do
   end
 
   defp show_help do
-    IO.puts("Selfspy - Modern Activity Monitoring in Elixir")
+    IO.puts("Selfspy - Demo CLI in Elixir")
     IO.puts("")
     IO.puts("Let it crash! Fault-tolerant monitoring with OTP")
     IO.puts("")
@@ -31,10 +31,12 @@ defmodule SelfspyCLI do
     IO.puts("")
     IO.puts("COMMANDS:")
     IO.puts("    help                  Show this help message")
-    IO.puts("    check                 Check system permissions")
-    IO.puts("    stats                 Show activity statistics")
-    IO.puts("    stats --json          Show statistics in JSON format")
+    IO.puts("    check                 Check system information")
+    IO.puts("    stats                 Show demo statistics")
+    IO.puts("    stats --json          Show demo statistics in JSON format")
     IO.puts("    version               Show version information")
+    IO.puts("")
+    IO.puts("Note: This is a demo CLI. For real monitoring use monitor_real.exs")
     IO.puts("")
     IO.puts("Elixir Implementation Features:")
     IO.puts("  • Actor model concurrency with OTP")
